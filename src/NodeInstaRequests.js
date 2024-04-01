@@ -140,8 +140,8 @@ export default class NodeInstaRequests {
     })
   }
 
-  getSegment(segmentUrl) {
-    return fetch(segmentUrl, {
+  async getSegment(segmentUrl, n = 5) {
+    const response = await fetch(segmentUrl, {
       "headers": {
         "accept": "*/*",
         "accept-language": "en-US,en;q=0.9,ru;q=0.8",
@@ -157,20 +157,26 @@ export default class NodeInstaRequests {
       "body": null,
       "method": "GET",
       agent: this.agent,
-    }).then(async (response) => {
-      if (!response.ok) {
+    }).catch((error) => {
+      console.error(error);
+      return false;
+    });
+    if (!response || !response.ok) {
+      if (n === 0) {
         return {
-            ok: false,
-            status: response.status
-        }
-      }
-      this._handleHeaders(...response.headers)
-      return {
-          ok: true,
+          ok: false,
           status: response.status,
-          blob: await response.blob()
-      }
-    })
+        };
+      };
+      console.info("retrying...", n, response.status, response.statusText);
+      return await getSegment(segmentUrl, n - 1);
+    }
+    this._handleHeaders(...response.headers);
+    return {
+      ok: true,
+      status: response.status,
+      blob: await response.blob(),
+    };
   }
 
   downloadVideoSegment() {
