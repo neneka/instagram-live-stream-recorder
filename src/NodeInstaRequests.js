@@ -169,7 +169,7 @@ export default class NodeInstaRequests {
         };
       };
       console.info("retrying...", n, response.status, response.statusText);
-      return await getSegment(segmentUrl, n - 1);
+      return await this.getSegment(segmentUrl, n - 1);
     }
     this._handleHeaders(...response.headers);
     return {
