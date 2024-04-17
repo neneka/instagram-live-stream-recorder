@@ -8,5 +8,6 @@
   ],
   "verbose": true,
   "full": true,
+  "getFull": true,
   "leaveTemp": false
 }
