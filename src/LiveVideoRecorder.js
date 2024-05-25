@@ -107,14 +107,14 @@ export default class LiveVideoRecorder extends EventTarget {
     }
     this.streamIsOver = false 
     this.startTime = mpdXml.documentElement.getAttribute('firstAvTimeMs')
-    const videoSegment = mpdXml.getElementById('live-hd-v').getElementsByTagName('SegmentTemplate')[0]
+    const videoSegment = mpdXml.getElementById('dash-lp-hd-v').getElementsByTagName('SegmentTemplate')[0]
     const videoInitUrl = videoSegment.getAttribute('initialization')
     const videoUrl = videoSegment.getAttribute('media')
 
     this.firstSegment = +videoSegment.getElementsByTagName('S')[0].getAttribute('t')
     
 
-    const audioSegment = mpdXml.getElementById('live-hd-a').getElementsByTagName('SegmentTemplate')[0]
+    const audioSegment = mpdXml.getElementById('dash-lp-hd-a').getElementsByTagName('SegmentTemplate')[0]
     const audioInitUrl = audioSegment.getAttribute('initialization')
     const audioUrl = audioSegment.getAttribute('media')
 
@@ -220,7 +220,7 @@ export default class LiveVideoRecorder extends EventTarget {
         }
       }
       
-      const timelineParts = mpdXml.getElementById('live-hd-v').getElementsByTagName('S')
+      const timelineParts = mpdXml.getElementById('dash-lp-hd-v').getElementsByTagName('S')
       const parts = []
 
       for (let i = 0; i < timelineParts.length; i++) {
