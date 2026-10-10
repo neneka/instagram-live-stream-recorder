@@ -21,18 +21,11 @@ async function makeRecords (liveRecorder, tryToFetchBegining, leaveTemp, verbose
   const tempAudioOutput = createWriteStream(audioTempPath)
   const initialVideoBuffer = Buffer.from(await liveRecorder.videoInitBlob.arrayBuffer())
   const initialAudioBuffer = Buffer.from(await liveRecorder.audioInitBlob.arrayBuffer())
-  if (!tryToFetchBegining) {
-    tempVideoOutput.write(initialVideoBuffer)
-    tempAudioOutput.write(initialAudioBuffer)
-  }
   const { videoStream, audioStream } = liveRecorder.getDataStreams()
  
   videoStream.pipe(tempVideoOutput)
   audioStream.pipe(tempAudioOutput)
- 
-  await liveRecorder.startRecording()
-  await finished(videoStream)
-  await finished(audioStream)
+
   if (tryToFetchBegining) {
     const videoPath = resolve(dirname, 'temp', `${startTime}-video-${startTime}_${rnd}.m4v`)
     const audioPath = resolve(dirname, 'temp', `${startTime}-audio-${startTime}_${rnd}.m4a`)
@@ -46,7 +39,11 @@ async function makeRecords (liveRecorder, tryToFetchBegining, leaveTemp, verbose
     pastVideoStream.pipe(videoOutput, { end: false })
     pastAudioStream.pipe(audioOutput, { end: false })
 
-    await liveRecorder.tryFetchBack(verbose)
+    // Start recording and fetching past segments in parallel
+    const recordingPromise = liveRecorder.startRecording()
+    const fetchBackPromise = liveRecorder.tryFetchBack(verbose)
+
+    await Promise.all([recordingPromise, fetchBackPromise])
     await finished(pastVideoStream)
     await finished(pastAudioStream)
     createReadStream(videoTempPath).pipe(videoOutput)
@@ -64,6 +61,12 @@ async function makeRecords (liveRecorder, tryToFetchBegining, leaveTemp, verbose
       audioPath, 
     }
   }
+
+  tempVideoOutput.write(initialVideoBuffer)
+  tempAudioOutput.write(initialAudioBuffer)
+  await liveRecorder.startRecording()
+  await finished(videoStream)
+  await finished(audioStream)
 
   return {
     startTime,

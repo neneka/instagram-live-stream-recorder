@@ -19,45 +19,50 @@ export default class NodeInstaRequests {
     }
   }
 
-  getUsernameInfo(username) {
+  async getUsernameInfo(username) {
     if (!this.csrfToken) {
       throw new Error('Error: csrfToken is requered for getUsernameInfo request')
     }
-    return fetch(`https://i.instagram.com/api/v1/users/web_profile_info/?username=${username}`, {
-    "headers": {
-      "accept": "*/*",
-      "accept-language": "en-US,en;q=0.9,ru;q=0.8",
-      "sec-ch-ua": "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"103\", \"Google Chrome\";v=\"103\"",
-      "sec-ch-ua-mobile": "?0",
-      "sec-ch-ua-platform": "\"Windows\"",
-      "sec-fetch-dest": "empty",
-      "sec-fetch-mode": "cors",
-      "sec-fetch-site": "same-site",
-      "x-asbd-id": "198387",
-      "x-csrftoken": this.csrfToken,
-      "x-ig-app-id": this.xIgAppId,
-      "x-ig-www-claim": this.xIgWWWClaim,
-      "cookie": `sessionid=${this.sessionId};`,    
-      "Referer": "https://www.instagram.com/",
-      "Referrer-Policy": "strict-origin-when-cross-origin"
-    },
-    "body": null,
-    "method": "GET",
-    agent: this.agent
-    }).then(async (response) => {
-      if (!response.ok) {
-        return {
-            ok: false,
-            status: response.status
-        }
-      }
-      this._handleHeaders(...response.headers)
+    if (!this.sessionId) {
+      throw new Error('Error: sessionId is requered for getUsernameInfo request')
+    }
+
+    const response = await fetch(`https://www.instagram.com/${encodeURIComponent(username)}/`, {
+      headers: {
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'accept-language': 'en-US,en;q=0.9',
+        cookie: `sessionid=${this.sessionId};`,
+        Referer: 'https://www.instagram.com/',
+      },
+      method: 'GET',
+      agent: this.agent,
+    })
+
+    if (!response.ok) {
       return {
-          ok: true,
-          status: response.status,
-          json: await response.json()
+        ok: false,
+        status: response.status,
       }
-    }) 
+    }
+
+    const profileHtml = (await response.text()).replace(/\\(["'])/g, '$1')
+    const userId = profileHtml.match(/["']profile_id["']\s*:\s*["']?(\d+)/)?.[1]
+      || profileHtml.match(/profilePage_(\d+)/)?.[1]
+
+    if (!userId) {
+      return {
+        ok: false,
+        status: response.status,
+        error: 'Profile ID not found in Instagram profile page',
+      }
+    }
+
+    this._handleHeaders(...response.headers)
+    return {
+      ok: true,
+      status: response.status,
+      json: { data: { user: { id: userId } } },
+    }
   }
 
   getStreamInfo(userId) {

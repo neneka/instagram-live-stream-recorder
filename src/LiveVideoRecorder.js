@@ -179,11 +179,18 @@ export default class LiveVideoRecorder extends EventTarget {
     }
 
     this.username = username
-    const { ok: usernameRequestOk, json: userInfo } = await this.requests.getUsernameInfo(this.username)
+    const {
+      ok: usernameRequestOk,
+      status: usernameRequestStatus,
+      error: usernameRequestError,
+      json: userInfo,
+    } = await this.requests.getUsernameInfo(this.username)
     if (!usernameRequestOk) {
+      const requestError = usernameRequestError
+        || (usernameRequestStatus ? `HTTP ${usernameRequestStatus}` : 'request failed')
       return { 
         status: 'fail',
-        message: `Can't find user info`,
+        message: `Can't find user info (${requestError})`,
       }
     }
     return this.initializeWithUserId(userInfo.data.user.id)         
@@ -312,6 +319,11 @@ export default class LiveVideoRecorder extends EventTarget {
   }
 
   async tryFetchBack(verbose) {
+    // Wait for durations to be available (populated during recording)
+    while (this.durations.getPossibleDurationsList().length === 0 && this.recording) {
+      await delay(1000)
+    }
+
     const durations = this.durations.getPossibleDurationsList()
     const curSegmentsNumber = this.pastVideoBlobs.length
     if (durations.length === 0) {
